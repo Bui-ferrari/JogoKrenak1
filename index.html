@@ -8,8 +8,12 @@
     :root {
       --p1-color: #ff5252;
       --p2-color: #448aff;
+      --p1-light: #ff8a80;
+      --p2-light: #82b1ff;
       --btn-color: #ffca28;
+      --circle-size: 16px;
     }
+    *, *::before, *::after { box-sizing: border-box; }
     body {
       margin: 0;
       height: 100vh;
@@ -18,143 +22,170 @@
       align-items: center;
       background: #f0f0f0;
       font-family: sans-serif;
+      overflow: hidden;
     }
-    /* TELA INICIAL */
-    #start-screen { text-align:center; }
-    #start-screen h1 { font-size:2rem; margin-bottom:24px; }
+    /* transições suaves */
+    #game-screen, #end-screen {
+      transition: opacity 0.5s ease;
+    }
+    #game-screen.hidden, #end-screen.hidden {
+      opacity: 0;
+      pointer-events: none;
+    }
+    /* tela inicial */
+    #start-screen { text-align: center; }
+    #start-screen h1 { font-size: 2rem; margin-bottom: 16px; }
+    .name-inputs { margin-bottom: 16px; }
+    .name-inputs input {
+      padding: 8px; font-size: 1rem; margin: 0 8px;
+    }
     #start-btn {
-      padding:12px 24px;
-      font-size:1.2rem;
-      background:#4caf50; color:#fff;
-      border:none; border-radius:6px;
-      cursor:pointer; transition:background .2s;
+      padding: 12px 24px; font-size: 1.2rem;
+      background: #4caf50; color: #fff;
+      border: none; border-radius: 6px;
+      cursor: pointer; transition: background .2s;
     }
-    #start-btn:hover { background:#43a047; }
-
-    /* TELA DE JOGO */
-    #game-screen { display:none; width:100%; max-width:960px; }
+    #start-btn:hover { background: #43a047; }
+    /* tela de jogo */
+    #game-screen { display: none; width: 100%; max-width: 960px; }
     #player-banner {
-      text-align:center;
-      font-size:1.5rem;
-      font-weight:bold;
-      color:#fff;
-      padding:8px 0;
-      border-radius:4px;
-      margin-bottom:16px;
+      text-align: center; font-size: 1.5rem; font-weight: bold;
+      color: #fff; padding: 8px 0; border-radius: 4px;
+      margin-bottom: 16px;
     }
-    header {
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      margin-bottom:16px;
+    header { position: relative; margin-bottom: 16px; }
+    #scoreboard {
+      display: flex; justify-content: center; gap: 32px;
+      margin-bottom: 16px;
     }
-    #scoreboard { font-size:1.1rem; }
+    .score-box {
+      display: flex; align-items: center; gap: 8px;
+      padding: 4px 8px; border-radius: 4px;
+      color: #fff; font-size: 1.1rem;
+    }
+    .player1.score-box { background: var(--p1-color); }
+    .player2.score-box { background: var(--p2-color); }
+    .score-circles { display: flex; gap: 4px; }
+    .circle {
+      width: var(--circle-size); height: var(--circle-size);
+      border: 1px solid #333; border-radius: 50%;
+      background: #fff;
+    }
     #restart {
-      padding:8px 16px;
-      font-size:1rem;
-      background:#ff9800; color:#fff;
-      border:none; border-radius:4px;
-      cursor:pointer; transition:background .2s;
+      position: absolute; top: 0; right: 0;
+      padding: 8px 16px; font-size: 1rem;
+      background: #ff9800; color: #fff;
+      border: none; border-radius: 4px;
+      cursor: pointer; transition: background .2s;
     }
-    #restart:hover { background:#fb8c00; }
-
-    /* TABULEIRO */
+    #restart:hover { background: #fb8c00; }
+    /* tabuleiro */
     #board {
-      display:grid;
-      grid-template-columns:repeat(6,1fr);
-      gap:12px;
-      padding:16px;
-      border-radius:8px;
-      margin-bottom:24px;
+      display: grid; grid-template-columns: repeat(6,1fr);
+      gap: 12px; padding: 16px; border-radius: 8px;
+      margin-bottom: 24px;
     }
     .card {
-      aspect-ratio:1;
-      perspective:800px;
-      cursor:pointer;
+      aspect-ratio: 1; perspective: 800px; cursor: pointer;
     }
     .inner {
-      width:100%; height:100%;
-      position:relative;
-      transition:transform .6s;
-      transform-style:preserve-3d;
+      width: 100%; height: 100%;
+      position: relative; transition: transform .6s;
+      transform-style: preserve-3d;
     }
     .card.flipped .inner {
-      transform:rotateY(180deg);
-      pointer-events:none;
+      transform: rotateY(180deg); pointer-events: none;
     }
-
-    /* FUNDO DAS CARTAS */
     .card-face {
-      position:absolute; inset:0;
-      backface-visibility:hidden;
-      display:flex;
-      justify-content:center;
-      align-items:center;
-      padding:16px;
-      font-size:1rem;
-      color:#000;
-      text-shadow:0 1px 2px rgba(255,255,255,0.8);
+      position: absolute; inset: 0;
+      backface-visibility: hidden;
+      display: flex; justify-content: center; align-items: center;
+      padding: 16px; font-size: 1rem; color: #000;
+      text-shadow: 0 1px 2px rgba(255,255,255,0.8);
       background: url('borda.png') no-repeat center center;
       background-size: cover;
     }
     .card-face.back {
-      transform:rotateY(180deg);
-      /* leve tom verde por baixo da borda */
+      transform: rotateY(180deg);
       background-color: rgba(230,255,237,0.3);
     }
-
-    /* CARTA ACERTADA: fundo sólido verde claro */
-    .card.flipped .card-face.back {
-      background-image: none !important;
-      background-color: #c8e6c9 !important;
-      border: none;
+    .card.player1.flipped .card-face.back {
+      background-image: none!important;
+      background-color: var(--p1-light)!important;
     }
-
-    /* OPÇÕES */
+    .card.player2.flipped .card-face.back {
+      background-image: none!important;
+      background-color: var(--p2-light)!important;
+    }
+    /* opções */
     #options {
-      display:flex;
-      flex-wrap:wrap;
-      gap:12px;
-      margin-bottom:24px;
+      display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 24px;
     }
     #options button {
-      flex:1 1 calc(20% - 12px);
-      min-width:100px;
-      padding:12px;
-      font-size:1rem;
-      border:1px solid #333;
-      border-radius:6px;
-      background:var(--btn-color);
-      cursor:pointer;
-      transition:background .2s,border-color .2s;
+      flex: 1 1 calc(20% - 12px); min-width: 100px;
+      padding: 12px; font-size: 1rem;
+      border: 1px solid #333; border-radius: 6px;
+      background: var(--btn-color); cursor: pointer;
+      transition: background .2s, border-color .2s;
     }
-    #options button:hover:not(:disabled) { background:#ffd54f; }
+    #options button:hover:not(:disabled) { background: #ffd54f; }
     #options button.correct {
-      background:#c8e6c9; border-color:#388e3c;
+      background: #c8e6c9; border-color: #388e3c;
     }
     #options button.wrong {
-      background:#ffcdd2; border-color:#d32f2f;
+      background: #ffcdd2; border-color: #d32f2f;
     }
-    #options button:disabled {
-      opacity:.6; cursor:default;
+    #options button:disabled { opacity: .6; cursor: default; }
+    /* tela final */
+    #end-screen {
+      display: none; position: fixed; top: 0; left: 0;
+      width: 100%; height: 100%;
+      flex-direction: column; justify-content: center; align-items: center;
+      color: #fff; z-index: 9999; opacity: 1;
     }
+    #end-score {
+      font-size: 2rem; margin-bottom: 24px; text-align: center;
+    }
+    #new-game {
+      padding: 12px 24px; font-size: 1.2rem;
+      background: #fff; color: #000;
+      border: none; border-radius: 6px;
+      cursor: pointer; transition: background .2s;
+    }
+    #new-game:hover { background: #eee; }
   </style>
 </head>
 <body>
 
-  <!-- TELA INICIAL -->
+  <!-- Tela Inicial -->
   <div id="start-screen">
     <h1>Jogo de Vocabulário Krenak</h1>
+    <div class="name-inputs">
+      <input id="player1-name" type="text" placeholder="Nome do Jogador 1"/>
+      <input id="player2-name" type="text" placeholder="Nome do Jogador 2"/>
+    </div>
     <button id="start-btn">Começar</button>
   </div>
 
-  <!-- TELA DE JOGO -->
+  <!-- Tela de Jogo -->
   <div id="game-screen">
-    <div id="player-banner">Vez do jogador 1</div>
+    <div id="player-banner">Vez de Jogador</div>
     <header>
       <div id="scoreboard">
-        Jogador 1: <span id="score-1">0</span> |
-        Jogador 2: <span id="score-2">0</span>
+        <div class="score-box player1">
+          <span id="label-1">Jogador 1</span>
+          <div class="score-circles" id="circles-1">
+            <span class="circle"></span><span class="circle"></span><span class="circle"></span><span class="circle"></span><span class="circle"></span>
+            <span class="circle"></span><span class="circle"></span><span class="circle"></span><span class="circle"></span><span class="circle"></span>
+          </div>
+        </div>
+        <div class="score-box player2">
+          <span id="label-2">Jogador 2</span>
+          <div class="score-circles" id="circles-2">
+            <span class="circle"></span><span class="circle"></span><span class="circle"></span><span class="circle"></span><span class="circle"></span>
+            <span class="circle"></span><span class="circle"></span><span class="circle"></span><span class="circle"></span><span class="circle"></span>
+          </div>
+        </div>
       </div>
       <button id="restart">Reiniciar Jogo</button>
     </header>
@@ -162,9 +193,16 @@
     <div id="options"></div>
   </div>
 
-  <!-- Howler.js para sons -->
+  <!-- Tela Final -->
+  <div id="end-screen">
+    <div id="end-score"></div>
+    <button id="new-game">Nova Partida</button>
+  </div>
+
+  <!-- Howler.js + Lógica -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script>
   <script>
+    // Lista completa de 258 palavras embutida:
     const words = [
       {"Emburuk":"Góng","Amarelo":"Cachorro"},
       {"Emburuk":"Ãm-Ãm ingu","Amarelo":"Ovo"},
@@ -244,30 +282,30 @@
       {"Emburuk":"Minhag","Amarelo":"Água"},
       {"Emburuk":"Makian","Amarelo":"Velho"},
       {"Emburuk":"Mãnt","Amarelo":"Cheia"},
-      {"Emburuk":"Mum Rat","Amarelo":"Outro lado"},
-      {"Emburuk":"Mák","Amarelo":"Perna"},
+      {"Emburuk":"Mum Rat","Amarelo":"Outro Lado"},
+      {"Emburuk":"M k","Amarelo":"Perna"},
       {"Emburuk":"Môn-Môn","Amarelo":"Doente"},
       {"Emburuk":"Merent","Amarelo":"Hoje"},
-      {"Emburuk":"Mra thá","Amarelo":"Aquela lá"},
+      {"Emburuk":"Mra thá","Amarelo":"Aquela Lá"},
       {"Emburuk":"Jãn","Amarelo":"Embora"},
       {"Emburuk":"Jojék","Amarelo":"Costas"},
-      {"Emburuk":"Jukinik","Amarelo":"Pica Pau"},
+      {"Emburuk":"Jukinik","Amarelo":"Pica-Pau"},
       {"Emburuk":"Jugék","Amarelo":"Sangue"},
       {"Emburuk":"Jankarit","Amarelo":"Saliva"},
       {"Emburuk":"Jeké","Amarelo":"Coqueiro"},
       {"Emburuk":"Jóp","Amarelo":"Beber"},
       {"Emburuk":"Jotóm","Amarelo":"Lombriga"},
-      {"Emburuk":"Jukériri","Amarelo":"Cobra cipó"},
+      {"Emburuk":"Jukériri","Amarelo":"Cobra-Cipó"},
       {"Emburuk":"Jukuán","Amarelo":"Sucuri"},
       {"Emburuk":"Jum","Amarelo":"Banho"},
       {"Emburuk":"Jukuvan","Amarelo":"Traíra"},
       {"Emburuk":"Juk Nék","Amarelo":"Esquilo"},
       {"Emburuk":"Erá","Amarelo":"Maduro"},
-      {"Emburuk":"Epã","Amarelo":"chuva"},
+      {"Emburuk":"Epã","Amarelo":"Chuva"},
       {"Emburuk":"Erék","Amarelo":"Duro"},
       {"Emburuk":"Eklék","Amarelo":"Feio"},
       {"Emburuk":"Erarat","Amarelo":"Descansar"},
-      {"Emburuk":"Erét-nét","Amarelo":"Tuím-tuím (periquito)"},
+      {"Emburuk":"Erét-nét","Amarelo":"Tuím-Tuím (periquito)"},
       {"Emburuk":"En-en","Amarelo":"Conchas"},
       {"Emburuk":"Gumrim","Amarelo":"Cana"},
       {"Emburuk":"Nék","Amarelo":"Doce"},
@@ -303,12 +341,12 @@
       {"Emburuk":"Niuk","Amarelo":"Esse"},
       {"Emburuk":"Nhóm","Amarelo":"Verde-Escuro"},
       {"Emburuk":"Nem rá","Amarelo":"Este"},
-      {"Emburuk":"Num Pit","Amarelo":"Bicho de pé"},
+      {"Emburuk":"Num Pit","Amarelo":"Bicho-de-Pé"},
       {"Emburuk":"Nak-má","Amarelo":"Buraco"},
       {"Emburuk":"Nhinhak","Amarelo":"Feia"},
       {"Emburuk":"Nhauit","Amarelo":"Cheia"},
       {"Emburuk":"Najãm","Amarelo":"Inchado"},
-      {"Emburuk":"Nhukon","Amarelo":"É isso aqui"},
+      {"Emburuk":"Nhukon","Amarelo":"É-Isso-Aqui"},
       {"Emburuk":"Naim","Amarelo":"Ilha"},
       {"Emburuk":"Gut","Amarelo":"Tartaruga"},
       {"Emburuk":"Pitang","Amarelo":"Mosquito"},
@@ -331,16 +369,16 @@
       {"Emburuk":"Guiúpuk Jithák","Amarelo":"Vovó"},
       {"Emburuk":"Indhák","Amarelo":"Irmão"},
       {"Emburuk":"Kruk","Amarelo":"Filho"},
-      {"Emburuk":"Burum","Amarelo":"Homem indígena"},
-      {"Emburuk":"Dhukinãn","Amarelo":"Mulher indígena"},
+      {"Emburuk":"Burum","Amarelo":"Homem-indígena"},
+      {"Emburuk":"Dhukinãn","Amarelo":"Mulher-indígena"},
       {"Emburuk":"Dhunikhãn Orãm","Amarelo":"Moça"},
       {"Emburuk":"Uarrá Orãm","Amarelo":"Moço"},
       {"Emburuk":"Nan Tondon Uarrá","Amarelo":"Menino"},
       {"Emburuk":"Kijikãn Anthák","Amarelo":"Tio"},
       {"Emburuk":"Anthák","Amarelo":"Primo/Prima"},
       {"Emburuk":"Nan Tondon","Amarelo":"Criança"},
-      {"Emburuk":"Krái","Amarelo":"Homem não indígena"},
-      {"Emburuk":"Inhorá","Amarelo":"Mulher não indígena"},
+      {"Emburuk":"Krái","Amarelo":"Homem-não-indígena"},
+      {"Emburuk":"Inhorá","Amarelo":"Mulher-não-indígena"},
       {"Emburuk":"Uarrá","Amarelo":"Homem"},
       {"Emburuk":"Makiãm","Amarelo":"Velho/Velha"},
       {"Emburuk":"Nan Tondon Dhukinãn","Amarelo":"Menina"},
@@ -360,70 +398,83 @@
       {"Emburuk":"Ató","Amarelo":"Tecer"},
       {"Emburuk":"Arupran","Amarelo":"Comer"},
       {"Emburuk":"Ambak","Amarelo":"Caçar"},
-      {"Emburuk":"Mum","Amarelo":"Ir / Vamos"},
-      {"Emburuk":"Dain-õn","Amarelo":"Fala de novo"},
+      {"Emburuk":"Mum","Amarelo":"Ir/Vamos"},
+      {"Emburuk":"Dain-õn","Amarelo":"Fala de Novo"},
       {"Emburuk":"Dondeí","Amarelo":"Encolheu"},
       {"Emburuk":"Dham-im","Amarelo":"Sonhando"},
-      {"Emburuk":"Dhãn-rará","Amarelo":"Olha aqui"},
+      {"Emburuk":"Dhãn-rará","Amarelo":"Olha Aqui"},
       {"Emburuk":"Dhãn","Amarelo":"Esconder"},
-      {"Emburuk":"Mum im","Amarelo":"Vamos logo"},
-      {"Emburuk":"Me","Amarelo":"Tomar"},
-      {"Emburuk":"Mum Rep","Amarelo":"Vai sentar"},
+      {"Emburuk":"Mum im","Amarelo":"Vamos Logo"},
+      {"Emburuk":"Me","Amarela":"Tomar"},
+      {"Emburuk":"Mum Rep","Amarelo":"Vai Sentar"},
       {"Emburuk":"Mum né","Amarelo":"Viajar"},
       {"Emburuk":"Rak","Amarelo":"Caiu"},
       {"Emburuk":"Gri","Amarelo":"Cantar"},
       {"Emburuk":"Mãk Gã","Amarelo":"Pescar"},
       {"Emburuk":"Mrãt","Amarelo":"Acordar"},
       {"Emburuk":"Arné","Amarelo":"Cortei"},
-      {"Emburuk":"Nuk né","Amarelo":"Eu sou"},
+      {"Emburuk":"Nuk né","Amarelo":"Eu Sou"},
       {"Emburuk":"Narrim","Amarelo":"Sai"},
       {"Emburuk":"Nhép","Amarelo":"Fica"},
       {"Emburuk":"Nim","Amarelo":"Vem"},
       {"Emburuk":"Hép-Sep","Amarelo":"Fica"},
-      {"Emburuk":"Inkré","Amarelo":"Vem lá"},
+      {"Emburuk":"Inkré","Amarelo":"Vem Lá"},
       {"Emburuk":"Uuimbim","Amarelo":"Plantar"}
     ];
 
-    let currentPlayer = 1;
-    let scores = {1:0,2:0};
-    let boardWords = [];
+    const playerNames = {1:'Jogador 1',2:'Jogador 2'};
+    let currentPlayer=1, scores={1:0,2:0}, boardWords=[];
 
     const sounds = {
-      positive: new Howl({ src:['sounds/POSITIVE.wav'] }),
-      negative: new Howl({ src:['sounds/negative.wav'] }),
-      suspense: new Howl({ src:['sounds/By_the_Pool_Sting.mp3'], html5:true })
+      positive: new Howl({src:['sounds/POSITIVE.wav'],html5:true}),
+      negative: new Howl({src:['sounds/negative.wav'],html5:true}),
+      suspense: new Howl({src:['sounds/By_the_Pool_Sting.mp3'],html5:true}),
+      win:      new Howl({src:['sounds/bensound-buddy.mp3'],html5:true})
     };
 
-    document.getElementById('start-btn').onclick = startGame;
-    document.getElementById('restart').onclick   = init;
+    const startBtn = document.getElementById('start-btn'),
+          restartBtn = document.getElementById('restart'),
+          newGameBtn = document.getElementById('new-game');
+
+    startBtn.onclick   = startGame;
+    restartBtn.onclick = init;
+    newGameBtn.onclick = ()=> {
+      sounds.win.stop();
+      document.getElementById('end-screen').classList.add('hidden');
+      document.getElementById('game-screen').classList.add('hidden');
+      document.getElementById('start-screen').style.display='block';
+    };
 
     function startGame(){
-      document.getElementById('start-screen').style.display = 'none';
-      document.getElementById('game-screen').style.display  = 'block';
+      const p1 = document.getElementById('player1-name').value.trim(),
+            p2 = document.getElementById('player2-name').value.trim();
+      if(p1) playerNames[1]=p1;
+      if(p2) playerNames[2]=p2;
+      document.getElementById('label-1').textContent = playerNames[1];
+      document.getElementById('label-2').textContent = playerNames[2];
+      document.getElementById('player-banner').textContent = `Vez de ${playerNames[1]}`;
+      document.getElementById('start-screen').style.display='none';
+      const gs = document.getElementById('game-screen');
+      gs.style.display='block'; gs.classList.remove('hidden');
       init();
     }
 
     function init(){
-      currentPlayer = 1;
-      scores = {1:0,2:0};
-      updateScoreboard();
-      renderBoard();
-      clearOptions();
-      updateBoardColor();
+      currentPlayer=1; scores={1:0,2:0};
+      updateCircles(); renderBoard(); clearOptions(); updateBoardColor();
     }
 
     function renderBoard(){
       boardWords = shuffle([...words]).slice(0,30);
       const b = document.getElementById('board');
-      b.innerHTML = '';
-      boardWords.forEach((e,i)=>{
+      b.innerHTML='';
+      boardWords.forEach((w,i)=>{
         const card = document.createElement('div');
-        card.className = 'card';
-        card.dataset.index = i;
-        card.innerHTML = `
+        card.className='card'; card.dataset.index=i;
+        card.innerHTML=`
           <div class="inner">
-            <div class="card-face front">${e.Emburuk}</div>
-            <div class="card-face back">${e.Amarelo}</div>
+            <div class="card-face front">${w.Emburuk}</div>
+            <div class="card-face back">${w.Amarelo}</div>
           </div>`;
         card.onclick = ()=> onCardClick(card,i);
         b.appendChild(card);
@@ -437,10 +488,12 @@
 
     function showOptions(idx){
       const opts = document.getElementById('options');
-      opts.innerHTML = '';
+      opts.innerHTML='';
       const corr = boardWords[idx].Amarelo;
-      const others = words.map(w=>w.Amarelo).filter(p=>p!==corr);
-      const choices = shuffle([corr, ...shuffle(others).slice(0,4)]);
+      const others = words.map(w=>w.Amarelo).filter(a=>a!==corr);
+      shuffle(others);
+      const choices = [corr, ...others.slice(0,4)];
+      shuffle(choices);
       choices.forEach(txt=>{
         const btn = document.createElement('button');
         btn.textContent = txt;
@@ -450,47 +503,70 @@
     }
 
     function onOptionClick(btn,idx,corr){
-      sounds.suspense.play();
-      disableOptions();
+      sounds.suspense.play(); disableOptions();
       setTimeout(()=>{
         sounds.suspense.stop();
         const card = document.querySelector(`.card[data-index="${idx}"]`);
         if(btn.textContent===corr){
-          btn.classList.add('correct');
-          sounds.positive.play();
-          card.classList.add('flipped');
-          scores[currentPlayer]++;
-          updateScoreboard();
+          btn.classList.add('correct'); sounds.positive.play();
+          card.classList.add('flipped',`player${currentPlayer}`);
+          scores[currentPlayer]++; updateCircles();
+          if(Math.abs(scores[1]-scores[2])>=5) return endGame();
         } else {
-          btn.classList.add('wrong');
-          sounds.negative.play();
+          btn.classList.add('wrong'); sounds.negative.play();
           card.classList.remove('active');
         }
         currentPlayer = currentPlayer===1?2:1;
-        updateBoardColor();
-        clearOptions();
+        updateBoardColor(); clearOptions();
       },3000);
     }
 
     function disableOptions(){
       document.querySelectorAll('#options button').forEach(b=>b.disabled=true);
     }
-    function updateScoreboard(){
-      document.getElementById('score-1').textContent = scores[1];
-      document.getElementById('score-2').textContent = scores[2];
+
+    function updateCircles(){
+      [1,2].forEach(p=>{
+        const ctr = document.getElementById(`circles-${p}`);
+        Array.from(ctr.children).forEach((c,i)=>{
+          c.style.background = i < scores[p]
+            ? (p===1? 'var(--p1-color)' : 'var(--p2-color)')
+            : '#fff';
+        });
+      });
     }
+
     function updateBoardColor(){
       const clr = currentPlayer===1
         ? getComputedStyle(document.documentElement).getPropertyValue('--p1-color')
         : getComputedStyle(document.documentElement).getPropertyValue('--p2-color');
-      document.getElementById('board').style.backgroundColor = clr;
+      document.getElementById('board').style.backgroundColor=clr;
       const ban = document.getElementById('player-banner');
-      ban.style.backgroundColor = clr;
-      ban.textContent = `Vez do jogador ${currentPlayer}`;
+      ban.style.backgroundColor=clr;
+      ban.textContent=`Vez de ${playerNames[currentPlayer]}`;
     }
+
+    function endGame(){
+      const gs = document.getElementById('game-screen'),
+            es = document.getElementById('end-screen');
+      gs.classList.add('hidden');
+      setTimeout(()=>{
+        gs.style.display='none';
+        const winner = scores[1]>scores[2]?1:2,
+              loser  = winner===1?2:1;
+        es.style.backgroundColor = getComputedStyle(document.documentElement)
+          .getPropertyValue(`--p${winner}-color`);
+        document.getElementById('end-score').textContent =
+          `${playerNames[winner]} venceu ${scores[winner]} a ${scores[loser]}`;
+        es.style.display='flex'; es.classList.remove('hidden');
+        sounds.win.play();
+      },500);
+    }
+
     function clearOptions(){
-      document.getElementById('options').innerHTML = '';
+      document.getElementById('options').innerHTML='';
     }
+
     function shuffle(a){
       for(let i=a.length-1;i>0;i--){
         const j=Math.floor(Math.random()*(i+1));
