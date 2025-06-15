@@ -1,0 +1,503 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Jogo de Vocabulário Krenak</title>
+  <style>
+    :root {
+      --p1-color: #ff5252;
+      --p2-color: #448aff;
+      --btn-color: #ffca28;
+    }
+    body {
+      margin: 0;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: #f0f0f0;
+      font-family: sans-serif;
+    }
+    /* TELA INICIAL */
+    #start-screen { text-align:center; }
+    #start-screen h1 { font-size:2rem; margin-bottom:24px; }
+    #start-btn {
+      padding:12px 24px;
+      font-size:1.2rem;
+      background:#4caf50; color:#fff;
+      border:none; border-radius:6px;
+      cursor:pointer; transition:background .2s;
+    }
+    #start-btn:hover { background:#43a047; }
+
+    /* TELA DE JOGO */
+    #game-screen { display:none; width:100%; max-width:960px; }
+    #player-banner {
+      text-align:center;
+      font-size:1.5rem;
+      font-weight:bold;
+      color:#fff;
+      padding:8px 0;
+      border-radius:4px;
+      margin-bottom:16px;
+    }
+    header {
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      margin-bottom:16px;
+    }
+    #scoreboard { font-size:1.1rem; }
+    #restart {
+      padding:8px 16px;
+      font-size:1rem;
+      background:#ff9800; color:#fff;
+      border:none; border-radius:4px;
+      cursor:pointer; transition:background .2s;
+    }
+    #restart:hover { background:#fb8c00; }
+
+    /* TABULEIRO */
+    #board {
+      display:grid;
+      grid-template-columns:repeat(6,1fr);
+      gap:12px;
+      padding:16px;
+      border-radius:8px;
+      margin-bottom:24px;
+    }
+    .card {
+      aspect-ratio:1;
+      perspective:800px;
+      cursor:pointer;
+    }
+    .inner {
+      width:100%; height:100%;
+      position:relative;
+      transition:transform .6s;
+      transform-style:preserve-3d;
+    }
+    .card.flipped .inner {
+      transform:rotateY(180deg);
+      pointer-events:none;
+    }
+
+    /* FUNDO DAS CARTAS */
+    .card-face {
+      position:absolute; inset:0;
+      backface-visibility:hidden;
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      padding:16px;
+      font-size:1rem;
+      color:#000;
+      text-shadow:0 1px 2px rgba(255,255,255,0.8);
+      background: url('borda.png') no-repeat center center;
+      background-size: cover;
+    }
+    .card-face.back {
+      transform:rotateY(180deg);
+      /* leve tom verde por baixo da borda */
+      background-color: rgba(230,255,237,0.3);
+    }
+
+    /* CARTA ACERTADA: fundo sólido verde claro */
+    .card.flipped .card-face.back {
+      background-image: none !important;
+      background-color: #c8e6c9 !important;
+      border: none;
+    }
+
+    /* OPÇÕES */
+    #options {
+      display:flex;
+      flex-wrap:wrap;
+      gap:12px;
+      margin-bottom:24px;
+    }
+    #options button {
+      flex:1 1 calc(20% - 12px);
+      min-width:100px;
+      padding:12px;
+      font-size:1rem;
+      border:1px solid #333;
+      border-radius:6px;
+      background:var(--btn-color);
+      cursor:pointer;
+      transition:background .2s,border-color .2s;
+    }
+    #options button:hover:not(:disabled) { background:#ffd54f; }
+    #options button.correct {
+      background:#c8e6c9; border-color:#388e3c;
+    }
+    #options button.wrong {
+      background:#ffcdd2; border-color:#d32f2f;
+    }
+    #options button:disabled {
+      opacity:.6; cursor:default;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- TELA INICIAL -->
+  <div id="start-screen">
+    <h1>Jogo de Vocabulário Krenak</h1>
+    <button id="start-btn">Começar</button>
+  </div>
+
+  <!-- TELA DE JOGO -->
+  <div id="game-screen">
+    <div id="player-banner">Vez do jogador 1</div>
+    <header>
+      <div id="scoreboard">
+        Jogador 1: <span id="score-1">0</span> |
+        Jogador 2: <span id="score-2">0</span>
+      </div>
+      <button id="restart">Reiniciar Jogo</button>
+    </header>
+    <div id="board"></div>
+    <div id="options"></div>
+  </div>
+
+  <!-- Howler.js para sons -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/howler/2.2.3/howler.min.js"></script>
+  <script>
+    const words = [
+      {"Emburuk":"Góng","Amarelo":"Cachorro"},
+      {"Emburuk":"Ãm-Ãm ingu","Amarelo":"Ovo"},
+      {"Emburuk":"Burum","Amarelo":"Índio"},
+      {"Emburuk":"Dhém","Amarelo":"Barraca/Barraco"},
+      {"Emburuk":"Kumandá","Amarelo":"Feijão"},
+      {"Emburuk":"Minhag-rim","Amarelo":"Café"},
+      {"Emburuk":"Amaik-utrâk","Amarelo":"Mandioca"},
+      {"Emburuk":"Bók-áp","Amarelo":"Peixe Assado"},
+      {"Emburuk":"Thin-áp","Amarelo":"Carne Assada"},
+      {"Emburuk":"Am turum","Amarelo":"Bolo"},
+      {"Emburuk":"Barâk","Amarelo":"Leite"},
+      {"Emburuk":"Nhúnana","Amarelo":"Batata Doce"},
+      {"Emburuk":"Marróm","Amarelo":"Abóbora"},
+      {"Emburuk":"Marát-nék","Amarelo":"Arroz Doce"},
+      {"Emburuk":"Indnirum-áp","Amarelo":"Milho assado"},
+      {"Emburuk":"Indnirum-ithâk","Amarelo":"Milho Cozido"},
+      {"Emburuk":"Marát","Amarelo":"Arroz"},
+      {"Emburuk":"Takruk","Amarelo":"Folha"},
+      {"Emburuk":"Thom Krem Rim","Amarelo":"Facão"},
+      {"Emburuk":"Jãm","Amarelo":"Dente"},
+      {"Emburuk":"Amadhãk","Amarelo":"Sombra"},
+      {"Emburuk":"Amukium","Amarelo":"Nuvem"},
+      {"Emburuk":"Amão","Amarelo":"Melão"},
+      {"Emburuk":"Amad-Ruk","Amarelo":"Tarde"},
+      {"Emburuk":"Angori","Amarelo":"Aranha"},
+      {"Emburuk":"Ambruk","Amarelo":"Frio"},
+      {"Emburuk":"Akré","Amarelo":"Cadê"},
+      {"Emburuk":"Batik","Amarelo":"Coelho"},
+      {"Emburuk":"Bakãn","Amarelo":"Pássaro"},
+      {"Emburuk":"Bók","Amarelo":"Peixe"},
+      {"Emburuk":"Bitin","Amarelo":"Gato"},
+      {"Emburuk":"Borép","Amarelo":"Bola"},
+      {"Emburuk":"Bat","Amarelo":"Acabou"},
+      {"Emburuk":"Bathók","Amarelo":"Vassoura"},
+      {"Emburuk":"Bukrin","Amarelo":"Veado"},
+      {"Emburuk":"Brukuku","Amarelo":"Vermelho"},
+      {"Emburuk":"Birin","Amarelo":"Gato"},
+      {"Emburuk":"Berré","Amarelo":"Lago"},
+      {"Emburuk":"Bakatí","Amarelo":"Abacaxi"},
+      {"Emburuk":"Bá","Amarelo":"Chato"},
+      {"Emburuk":"Bron","Amarelo":"Estrada"},
+      {"Emburuk":"Borombom","Amarelo":"Marimbondo"},
+      {"Emburuk":"Dhukinãn","Amarelo":"Moça"},
+      {"Emburuk":"Dhudhum","Amarelo":"Lança"},
+      {"Emburuk":"Tepó","Amarelo":"Sol"},
+      {"Emburuk":"Rakekék","Amarelo":"Borboleta"},
+      {"Emburuk":"Kauán","Amarelo":"Cavalo"},
+      {"Emburuk":"indu-indu","Amarelo":"Lagarta"},
+      {"Emburuk":"Gráng","Amarelo":"Cobra"},
+      {"Emburuk":"Ita","Amarelo":"Saia"},
+      {"Emburuk":"Gaiap","Amarelo":"Gioaba"},
+      {"Emburuk":"Emdrum","Amarelo":"Suco"},
+      {"Emburuk":"Amboók","Amarelo":"Árvore"},
+      {"Emburuk":"Ambã","Amarelo":"Urubu"},
+      {"Emburuk":"Amangut","Amarelo":"Avião"},
+      {"Emburuk":"Anim","Amarelo":"Oi"},
+      {"Emburuk":"Pokát","Amarelo":"Sapato"},
+      {"Emburuk":"Thiác","Amarelo":"Cabelo"},
+      {"Emburuk":"Tetum","Amarelo":"Coração"},
+      {"Emburuk":"hia-hã","Amarelo":"Brincos"},
+      {"Emburuk":"Kiton","Amarelo":"Olho"},
+      {"Emburuk":"Pó","Amarelo":"Mão"},
+      {"Emburuk":"Krak","Amarelo":"Faca"},
+      {"Emburuk":"Piták","Amarelo":"Lago"},
+      {"Emburuk":"Nem","Amarelo":"Arco"},
+      {"Emburuk":"Marandim","Amarelo":"Melancia"},
+      {"Emburuk":"Tomiak","Amarelo":"Lua"},
+      {"Emburuk":"Rinhak","Amarelo":"Caju"},
+      {"Emburuk":"Tokon","Amarelo":"Faca"},
+      {"Emburuk":"Thon Dhum","Amarelo":"Osso"},
+      {"Emburuk":"Pó-kruk","Amarelo":"Besouro"},
+      {"Emburuk":"Anknan","Amarelo":"Piolho"},
+      {"Emburuk":"Rimbom","Amarelo":"Capivara"},
+      {"Emburuk":"Dhé","Amarelo":"Seco"},
+      {"Emburuk":"Mron","Amarelo":"Ouro"},
+      {"Emburuk":"Minhag","Amarelo":"Água"},
+      {"Emburuk":"Makian","Amarelo":"Velho"},
+      {"Emburuk":"Mãnt","Amarelo":"Cheia"},
+      {"Emburuk":"Mum Rat","Amarelo":"Outro lado"},
+      {"Emburuk":"Mák","Amarelo":"Perna"},
+      {"Emburuk":"Môn-Môn","Amarelo":"Doente"},
+      {"Emburuk":"Merent","Amarelo":"Hoje"},
+      {"Emburuk":"Mra thá","Amarelo":"Aquela lá"},
+      {"Emburuk":"Jãn","Amarelo":"Embora"},
+      {"Emburuk":"Jojék","Amarelo":"Costas"},
+      {"Emburuk":"Jukinik","Amarelo":"Pica Pau"},
+      {"Emburuk":"Jugék","Amarelo":"Sangue"},
+      {"Emburuk":"Jankarit","Amarelo":"Saliva"},
+      {"Emburuk":"Jeké","Amarelo":"Coqueiro"},
+      {"Emburuk":"Jóp","Amarelo":"Beber"},
+      {"Emburuk":"Jotóm","Amarelo":"Lombriga"},
+      {"Emburuk":"Jukériri","Amarelo":"Cobra cipó"},
+      {"Emburuk":"Jukuán","Amarelo":"Sucuri"},
+      {"Emburuk":"Jum","Amarelo":"Banho"},
+      {"Emburuk":"Jukuvan","Amarelo":"Traíra"},
+      {"Emburuk":"Juk Nék","Amarelo":"Esquilo"},
+      {"Emburuk":"Erá","Amarelo":"Maduro"},
+      {"Emburuk":"Epã","Amarelo":"chuva"},
+      {"Emburuk":"Erék","Amarelo":"Duro"},
+      {"Emburuk":"Eklék","Amarelo":"Feio"},
+      {"Emburuk":"Erarat","Amarelo":"Descansar"},
+      {"Emburuk":"Erét-nét","Amarelo":"Tuím-tuím (periquito)"},
+      {"Emburuk":"En-en","Amarelo":"Conchas"},
+      {"Emburuk":"Gumrim","Amarelo":"Cana"},
+      {"Emburuk":"Nék","Amarelo":"Doce"},
+      {"Emburuk":"Inhauit","Amarelo":"Muito"},
+      {"Emburuk":"Grot","Amarelo":"Mamão"},
+      {"Emburuk":"Gín","Amarelo":"Nariz"},
+      {"Emburuk":"Gék","Amarelo":"Osso"},
+      {"Emburuk":"Gãm","Amarelo":"Aqui"},
+      {"Emburuk":"Gibian","Amarelo":"Xixi"},
+      {"Emburuk":"Gararã","Amarelo":"Calango"},
+      {"Emburuk":"Watu","Amarelo":"Rio"},
+      {"Emburuk":"Imrám","Amarelo":"Grande"},
+      {"Emburuk":"Kuparák","Amarelo":"Onça"},
+      {"Emburuk":"Taru","Amarelo":"Céu"},
+      {"Emburuk":"Kanó","Amarelo":"Canoa"},
+      {"Emburuk":"Kipik","Amarelo":"Boca"},
+      {"Emburuk":"Tembra","Amarelo":"Hoje"},
+      {"Emburuk":"Mak","Amarelo":"Sagrado"},
+      {"Emburuk":"Mren","Amarelo":"Saracura"},
+      {"Emburuk":"Mrõm","Amarelo":"Sabido"},
+      {"Emburuk":"Mót","Amarelo":"Mergulhar"},
+      {"Emburuk":"Mõn","Amarelo":"Aborrecido"},
+      {"Emburuk":"Rum","Amarelo":"Caneta"},
+      {"Emburuk":"Aprãm","Amarelo":"Gosto"},
+      {"Emburuk":"Mukuó Pok","Amarelo":"Perna"},
+      {"Emburuk":"Nomiak","Amarelo":"Lua"},
+      {"Emburuk":"Rerré","Amarelo":"Bonita"},
+      {"Emburuk":"Imran","Amarelo":"Grande"},
+      {"Emburuk":"Nak","Amarelo":"Terra"},
+      {"Emburuk":"Nin","Amarelo":"Eu"},
+      {"Emburuk":"Nuk","Amarelo":"Não"},
+      {"Emburuk":"Nhuk","Amarelo":"Meu"},
+      {"Emburuk":"Niuk","Amarelo":"Esse"},
+      {"Emburuk":"Nhóm","Amarelo":"Verde-Escuro"},
+      {"Emburuk":"Nem rá","Amarelo":"Este"},
+      {"Emburuk":"Num Pit","Amarelo":"Bicho de pé"},
+      {"Emburuk":"Nak-má","Amarelo":"Buraco"},
+      {"Emburuk":"Nhinhak","Amarelo":"Feia"},
+      {"Emburuk":"Nhauit","Amarelo":"Cheia"},
+      {"Emburuk":"Najãm","Amarelo":"Inchado"},
+      {"Emburuk":"Nhukon","Amarelo":"É isso aqui"},
+      {"Emburuk":"Naim","Amarelo":"Ilha"},
+      {"Emburuk":"Gut","Amarelo":"Tartaruga"},
+      {"Emburuk":"Pitang","Amarelo":"Mosquito"},
+      {"Emburuk":"Pombá","Amarelo":"Pato"},
+      {"Emburuk":"Pukri","Amarelo":"Boi"},
+      {"Emburuk":"Furó","Amarelo":"Flor"},
+      {"Emburuk":"Pukãn","Amarelo":"Banana"},
+      {"Emburuk":"Kuandhik","Amarelo":"Chocalho"},
+      {"Emburuk":"Knikok Tondon","Amarelo":"Flauta"},
+      {"Emburuk":"Nêm","Amarelo":"Flecha"},
+      {"Emburuk":"Uagik / krép","Amarelo":"Arco"},
+      {"Emburuk":"Kikrók-akú","Amarelo":"Zarabatana"},
+      {"Emburuk":"Borduna","Amarelo":"Tacape"},
+      {"Emburuk":"Ang-am","Amarelo":"Apito"},
+      {"Emburuk":"Kikrok","Amarelo":"Bambu (instrumento)"},
+      {"Emburuk":"Uacik","Amarelo":"Machadinha"},
+      {"Emburuk":"Guiúpuk","Amarelo":"Mãe"},
+      {"Emburuk":"Inguikãn","Amarelo":"Pai"},
+      {"Emburuk":"Inguikãn Mainu","Amarelo":"Vovô"},
+      {"Emburuk":"Guiúpuk Jithák","Amarelo":"Vovó"},
+      {"Emburuk":"Indhák","Amarelo":"Irmão"},
+      {"Emburuk":"Kruk","Amarelo":"Filho"},
+      {"Emburuk":"Burum","Amarelo":"Homem indígena"},
+      {"Emburuk":"Dhukinãn","Amarelo":"Mulher indígena"},
+      {"Emburuk":"Dhunikhãn Orãm","Amarelo":"Moça"},
+      {"Emburuk":"Uarrá Orãm","Amarelo":"Moço"},
+      {"Emburuk":"Nan Tondon Uarrá","Amarelo":"Menino"},
+      {"Emburuk":"Kijikãn Anthák","Amarelo":"Tio"},
+      {"Emburuk":"Anthák","Amarelo":"Primo/Prima"},
+      {"Emburuk":"Nan Tondon","Amarelo":"Criança"},
+      {"Emburuk":"Krái","Amarelo":"Homem não indígena"},
+      {"Emburuk":"Inhorá","Amarelo":"Mulher não indígena"},
+      {"Emburuk":"Uarrá","Amarelo":"Homem"},
+      {"Emburuk":"Makiãm","Amarelo":"Velho/Velha"},
+      {"Emburuk":"Nan Tondon Dhukinãn","Amarelo":"Menina"},
+      {"Emburuk":"Inguiúpuk Makiãm","Amarelo":"Tia"},
+      {"Emburuk":"Kitinãn","Amarelo":"Neto/Neta"},
+      {"Emburuk":"Iknerek","Amarelo":"Bem-te-ví"},
+      {"Emburuk":"Pok","Amarelo":"Raíz"},
+      {"Emburuk":"Uentenin","Amarelo":"Vento"},
+      {"Emburuk":"Tromeét","Amarelo":"Estrela"},
+      {"Emburuk":"Kat Ernek","Amarelo":"Caneca"},
+      {"Emburuk":"Ret-Net","Amarelo":"Papagaio"},
+      {"Emburuk":"Kap-Mok-Mok","Amarelo":"Sabiá"},
+      {"Emburuk":"Tromoot","Amarelo":"Fruta"},
+      {"Emburuk":"Kringué","Amarelo":"Cabelo"},
+      {"Emburuk":"Akãn","Amarelo":"Olha"},
+      {"Emburuk":"Amerék","Amarelo":"Abraçar"},
+      {"Emburuk":"Ató","Amarelo":"Tecer"},
+      {"Emburuk":"Arupran","Amarelo":"Comer"},
+      {"Emburuk":"Ambak","Amarelo":"Caçar"},
+      {"Emburuk":"Mum","Amarelo":"Ir / Vamos"},
+      {"Emburuk":"Dain-õn","Amarelo":"Fala de novo"},
+      {"Emburuk":"Dondeí","Amarelo":"Encolheu"},
+      {"Emburuk":"Dham-im","Amarelo":"Sonhando"},
+      {"Emburuk":"Dhãn-rará","Amarelo":"Olha aqui"},
+      {"Emburuk":"Dhãn","Amarelo":"Esconder"},
+      {"Emburuk":"Mum im","Amarelo":"Vamos logo"},
+      {"Emburuk":"Me","Amarelo":"Tomar"},
+      {"Emburuk":"Mum Rep","Amarelo":"Vai sentar"},
+      {"Emburuk":"Mum né","Amarelo":"Viajar"},
+      {"Emburuk":"Rak","Amarelo":"Caiu"},
+      {"Emburuk":"Gri","Amarelo":"Cantar"},
+      {"Emburuk":"Mãk Gã","Amarelo":"Pescar"},
+      {"Emburuk":"Mrãt","Amarelo":"Acordar"},
+      {"Emburuk":"Arné","Amarelo":"Cortei"},
+      {"Emburuk":"Nuk né","Amarelo":"Eu sou"},
+      {"Emburuk":"Narrim","Amarelo":"Sai"},
+      {"Emburuk":"Nhép","Amarelo":"Fica"},
+      {"Emburuk":"Nim","Amarelo":"Vem"},
+      {"Emburuk":"Hép-Sep","Amarelo":"Fica"},
+      {"Emburuk":"Inkré","Amarelo":"Vem lá"},
+      {"Emburuk":"Uuimbim","Amarelo":"Plantar"}
+    ];
+
+    let currentPlayer = 1;
+    let scores = {1:0,2:0};
+    let boardWords = [];
+
+    const sounds = {
+      positive: new Howl({ src:['sounds/POSITIVE.wav'] }),
+      negative: new Howl({ src:['sounds/negative.wav'] }),
+      suspense: new Howl({ src:['sounds/By_the_Pool_Sting.mp3'], html5:true })
+    };
+
+    document.getElementById('start-btn').onclick = startGame;
+    document.getElementById('restart').onclick   = init;
+
+    function startGame(){
+      document.getElementById('start-screen').style.display = 'none';
+      document.getElementById('game-screen').style.display  = 'block';
+      init();
+    }
+
+    function init(){
+      currentPlayer = 1;
+      scores = {1:0,2:0};
+      updateScoreboard();
+      renderBoard();
+      clearOptions();
+      updateBoardColor();
+    }
+
+    function renderBoard(){
+      boardWords = shuffle([...words]).slice(0,30);
+      const b = document.getElementById('board');
+      b.innerHTML = '';
+      boardWords.forEach((e,i)=>{
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.dataset.index = i;
+        card.innerHTML = `
+          <div class="inner">
+            <div class="card-face front">${e.Emburuk}</div>
+            <div class="card-face back">${e.Amarelo}</div>
+          </div>`;
+        card.onclick = ()=> onCardClick(card,i);
+        b.appendChild(card);
+      });
+    }
+
+    function onCardClick(card,idx){
+      if(card.classList.contains('flipped')||card.classList.contains('active')) return;
+      clearOptions(); card.classList.add('active'); showOptions(idx);
+    }
+
+    function showOptions(idx){
+      const opts = document.getElementById('options');
+      opts.innerHTML = '';
+      const corr = boardWords[idx].Amarelo;
+      const others = words.map(w=>w.Amarelo).filter(p=>p!==corr);
+      const choices = shuffle([corr, ...shuffle(others).slice(0,4)]);
+      choices.forEach(txt=>{
+        const btn = document.createElement('button');
+        btn.textContent = txt;
+        btn.onclick = ()=> onOptionClick(btn,idx,corr);
+        opts.appendChild(btn);
+      });
+    }
+
+    function onOptionClick(btn,idx,corr){
+      sounds.suspense.play();
+      disableOptions();
+      setTimeout(()=>{
+        sounds.suspense.stop();
+        const card = document.querySelector(`.card[data-index="${idx}"]`);
+        if(btn.textContent===corr){
+          btn.classList.add('correct');
+          sounds.positive.play();
+          card.classList.add('flipped');
+          scores[currentPlayer]++;
+          updateScoreboard();
+        } else {
+          btn.classList.add('wrong');
+          sounds.negative.play();
+          card.classList.remove('active');
+        }
+        currentPlayer = currentPlayer===1?2:1;
+        updateBoardColor();
+        clearOptions();
+      },3000);
+    }
+
+    function disableOptions(){
+      document.querySelectorAll('#options button').forEach(b=>b.disabled=true);
+    }
+    function updateScoreboard(){
+      document.getElementById('score-1').textContent = scores[1];
+      document.getElementById('score-2').textContent = scores[2];
+    }
+    function updateBoardColor(){
+      const clr = currentPlayer===1
+        ? getComputedStyle(document.documentElement).getPropertyValue('--p1-color')
+        : getComputedStyle(document.documentElement).getPropertyValue('--p2-color');
+      document.getElementById('board').style.backgroundColor = clr;
+      const ban = document.getElementById('player-banner');
+      ban.style.backgroundColor = clr;
+      ban.textContent = `Vez do jogador ${currentPlayer}`;
+    }
+    function clearOptions(){
+      document.getElementById('options').innerHTML = '';
+    }
+    function shuffle(a){
+      for(let i=a.length-1;i>0;i--){
+        const j=Math.floor(Math.random()*(i+1));
+        [a[i],a[j]]=[a[j],a[i]];
+      }
+      return a;
+    }
+  </script>
+</body>
+</html>
